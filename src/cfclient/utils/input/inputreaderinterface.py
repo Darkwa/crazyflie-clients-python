@@ -80,7 +80,12 @@ class InputData:
     def reset_buttons(self):
         for button in self._buttons:
             self.__dict__[button] = False
-
+    """
+    Cette méthode permet de déterminer si un bouton change d'état
+    ou non (toogle)
+    param name : nom du bouton à vérifier
+    param value : valeur du bouton
+    """
     def set(self, name, value):
         try:
             if name in self._buttons:
@@ -126,6 +131,7 @@ class InputReaderInterface(object):
         self._old_thrust = 0
         self._old_raw_thrust = 0
         self._old_alt_hold = False
+        self.althold_enabled = False
 
         self._prev_thrust = 0
         self._last_time = 0
@@ -165,7 +171,7 @@ class InputReaderInterface(object):
         return (InputReaderInterface.deadband(yaw, 0.2) *
                 self.input.max_yaw_rate)
 
-    def _limit_thrust(self, thrust, althold, emergency_stop):
+    def _limit_thrust(self, thrust, althold, emergency_stop): #thrust is between [-1.0;1.0]
         # Thust limiting (slew, minimum and emergency stop)
         if self.input.springy_throttle:
             if althold and self.input.has_pressure_sensor:
@@ -249,7 +255,9 @@ class InputReaderInterface(object):
 
     def enable_alt_hold(self, althold):
         """Enable or disable altitude hold"""
-        self._old_alt_hold = althold
+        print("fonction de inputreaderinterface appelée")
+        self._old_alt_hold = self.althold_enabled
+        self.althold_enabled = althold
 
     @staticmethod
     def deadband(value, threshold):

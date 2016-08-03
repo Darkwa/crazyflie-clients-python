@@ -84,3 +84,7 @@ class InputMux(object):
 
     def read(self):
         return None
+
+    def enable_alt_hold(self, althold):
+        for d in [key for key in list(self._devs.keys()) if self._devs[key]]:
+            self._devs[d].enable_alt_hold(althold)

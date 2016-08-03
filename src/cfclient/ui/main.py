@@ -164,7 +164,11 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                 logger.info("Pre-Yosemite - skinny bar stylesheet not applied")
 
         ######################################################
-
+        """
+        Création d'ub objet de type Crazyflie
+        Cet objet permet d'intéragir avec le quad
+        connexion / envoie et recéption de msg
+        """
         self.cf = Crazyflie(ro_cache=None,
                             rw_cache=cfclient.config_path + "/cache")
 
@@ -186,6 +190,11 @@ class MainUI(QtGui.QMainWindow, main_window_class):
                                        " fly.")
         self.statusBar().addWidget(self._statusbar_label)
 
+        """
+        Création d'un JoystickReader
+        Thread that will read input from devices and sens control-set points
+        to the crazyflie
+        """
         self.joystickReader = JoystickReader()
         self._active_device = ""
         # self.configGroup = QActionGroup(self._menu_mappings, exclusive=True)
@@ -195,6 +204,9 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         # TODO: Need to reload configs
         # ConfigManager().conf_needs_reload.add_callback(self._reload_configs)
 
+        """
+        Ajout des callbacks d'état de connexion
+        """
         self.cf.connection_failed.add_callback(
             self.connectionFailedSignal.emit)
         self.connectionFailedSignal.connect(self._connection_failed)
@@ -234,6 +246,11 @@ class MainUI(QtGui.QMainWindow, main_window_class):
             self._auto_reconnect_changed)
         self.autoReconnectCheckBox.setChecked(Config().get("auto_reconnect"))
 
+        """
+        Callback en rapport avec les input de joystickReader
+        Ainsi lorsque les inputs seront mises à jour, ne nouveau
+        setpoint sera automatiquement envoyé
+        """
         self.joystickReader.input_updated.add_callback(
             self.cf.commander.send_setpoint)
 
@@ -274,6 +291,10 @@ class MainUI(QtGui.QMainWindow, main_window_class):
         self.inputConfig = None
 
         # Add things to helper so tabs can access it
+        """
+        L'helper permet de passer les objets importants d'une tab à une autre
+        notamment cf et joystickReader
+        """
         cfclient.ui.pluginhelper.cf = self.cf
         cfclient.ui.pluginhelper.inputDeviceReader = self.joystickReader
         cfclient.ui.pluginhelper.logConfigReader = self.logConfigReader

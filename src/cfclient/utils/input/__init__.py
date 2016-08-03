@@ -101,6 +101,9 @@ class JoystickReader(object):
         # Set NoMux as default
         self._selected_mux = self._mux[0]
 
+        self.althold_enabled = False
+        self.prvsState = False
+
         if Config().get("flightmode") is "Normal":
             self.max_yaw_rate = Config().get("normal_max_yaw")
             self.max_rp_angle = Config().get("normal_max_rp")
@@ -175,7 +178,11 @@ class JoystickReader(object):
 
     def enable_alt_hold(self, althold):
         """Enable or disable altitude hold"""
-        self._old_alt_hold = althold
+        print("fonction de joystickreader appelée")
+        self._old_alt_hold = self.althold_enabled
+        self.althold_enabled = althold
+        self._selected_mux.enable_alt_hold(althold)
+        print("La fonction enable_alt_hold a été appelée.\nNouvelle valeur de _old_alt_hold : %s",althold )
 
     def _do_device_discovery(self):
         devs = self.available_devices()
@@ -332,11 +339,15 @@ class JoystickReader(object):
     def _get_thrust_slew_rate(self):
         return self._thrust_slew_rate
 
+    """
+    Cette fonction est appelée toutes les 10ms
+    """
     def read_input(self):
         """Read input data from the selected device"""
         try:
             data = self._selected_mux.read()
-
+            # data : cfclient.utils.input.inputreaderinterface.InputData
+            # sorte de dictionnaire contenant tous les input ayant changé de valeur
             if data:
                 if data.toggled.althold:
                     try:
@@ -353,9 +364,16 @@ class JoystickReader(object):
                         logger.warning("Exception while doing callback from"
                                        "input-device for estop: {}".format(e))
 
+                """
+                Si le bouton alt1 est pressé, on appelle le callback avec une valeur différente
+                selon la valeur précédente (soit True soit False)
+                """
                 if data.toggled.alt1:
+                    print("alt1 a changé d'état")
                     try:
-                        self.alt1_updated.call(data.alt1)
+                        if data.alt1 :
+                            print("alt1 vaut True")
+                            self.althold_updated.call(str(not self.althold_enabled))
                     except Exception as e:
                         logger.warning("Exception while doing callback from"
                                        "input-device for alt1: {}".format(e))
@@ -388,9 +406,16 @@ class JoystickReader(object):
                     data.thrust = 0xFFFF
 
                 # If we are using alt hold the data is not in a percentage
-                if not data.althold:
+                if not self.althold_enabled:
                     data.thrust = JoystickReader.p2t(data.thrust)
 
+                # If alt hold was activated during this loop, we use the previous thrust value
+                if self.prvsState ^ self.althold_enabled:
+                    print("Utilisation de l'ancienne valeur du thrust : {}".format(self._old_thrust))
+                    data.thrust = int(self._old_thrust)
+
+                self._old_thrust = data.thrust
+                self.prvsState = self.althold_enabled
                 self.input_updated.call(data.roll + self.trim_roll,
                                         data.pitch + self.trim_pitch,
                                         data.yaw, data.thrust)
